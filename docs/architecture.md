@@ -107,66 +107,29 @@ This is the visible proof engine.
 
 Below is the complete MVP flow.
 
-┌─────────────────────────────────┐
-│  User completes SDG challenge   │
-└─────────────────────────────────┘
-                 │
-                 ▼
-┌─────────────────────────────────┐
-│  CoGs Backend stores submission │
-└─────────────────────────────────┘
-                 │
-                 ▼
-┌─────────────────────────────────┐
-│    Impact Record JSON created   │
-└─────────────────────────────────┘
-                 │
-        ┌────────┘
-        │                ┌─────────────────────────────────┐
-        │                │                                 │
-        ▼                │                                 │
-┌───────────────────────┐│                                 │
-│ Module 1: Canonicalize││                                 │
-└───────────────────────┘│                                 │
-        │                │                                 │
-        ▼                │                                 │
-┌───────────────────────┐│                                 │
-│ Module 1: SHA-256 Hash││                                 │
-└───────────────────────┘│                                 │
-        │                │                                 │
-        ▼                │                                 │
-┌──────────────────────────────────┐                       │
-│ Module 2: Anchor Hash to Sepolia │                       │
-└──────────────────────────────────┘                       │
-        │                                                  │
-        ▼                                                  │
-┌──────────────────────────────────┐                       │
-│ Blockchain stores hash+timestamp │                       │
-└──────────────────────────────────┘                       │
-        │                                                  │
-        ├──────────────────────────────────────────────────┘
-        │
-        ▼
-┌──────────────────────────────┐
-│  tx_id returned to backend   │
-└──────────────────────────────┘
-        │
-        ▼
-┌──────────────────────────────┐
-│   tx_id stored off-chain     │
-└──────────────────────────────┘
-        │
-        ▼
-┌──────────────────────────────┐
-│ Module 3: Verification Tool  │
-└──────────────────────────────┘
-        │
-        ▼
-┌──────────────────────────────┐
-│        Hash Match?           │
-└──────────────────────────────┘
-       /        |        \
-      ▼         ▼         ▼
-┌─────────┐ ┌──────────┐ ┌─────────┐
-│VERIFIED │ │ TAMPERED │ │ MISSING │
-└─────────┘ └──────────┘ └─────────┘
+```mermaid
+flowchart TD
+
+A[User completes SDG challenge] --> B[CoGs Backend stores submission]
+B --> C[Impact Record JSON created]
+
+C --> D[Module 1: Canonicalize JSON]
+D --> E[Module 1: SHA-256 Hash]
+
+E --> F[Module 2: Anchor Hash to Sepolia]
+F --> G[Blockchain stores hash + timestamp]
+
+G --> H[tx_id returned to backend]
+
+H --> I[tx_id stored off-chain]
+
+I --> J[Module 3: Verification Tool]
+
+C --> J
+G --> J
+
+J --> K{Hash Match?}
+
+K -->|Yes| L[VERIFIED]
+K -->|No| M[TAMPERED]
+K -->|Not Found| N[MISSING]
