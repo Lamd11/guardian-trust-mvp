@@ -1,4 +1,6 @@
 # Module 2: Blockchain Anchor Layer
+
+## TO BE REVIEWED!!
 # Purpose: Write the hash to a public blockchain testnet (Sepolia)
 # This module deploys a smart contract to Ethereum's Sepolia testnet and uses it to "anchor" (store) cryptographic hashes of impact records.
 # Anchoring provides a public, immutable timestamp proving the record existed at that time.
@@ -18,6 +20,7 @@ PRIVATE_KEY = os.getenv("PRIVATE_KEY")  # Your Ethereum account's private key, s
 CONTRACT_ADDRESS = "0x..."  # The address of the deployed smart contract; initially placeholder, set after deployment
 
 # Minimal Smart Contract ABI (Application Binary Interface)
+
 # This is a JSON description of the contract's functions and events.
 # It tells Web3 how to call the contract's methods and listen for events.
 CONTRACT_ABI = [
