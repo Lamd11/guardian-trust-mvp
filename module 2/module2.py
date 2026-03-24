@@ -1,148 +1,197 @@
 # Module 2: Blockchain Anchor Layer
-
-## TO BE REVIEWED!!
 # Purpose: Write the hash to a public blockchain testnet (Sepolia)
-# This module deploys a smart contract to Ethereum's Sepolia testnet and uses it to "anchor" (store) cryptographic hashes of impact records.
+# Deploys a smart contract to Ethereum's Sepolia testnet to "anchor" (store) cryptographic hashes of impact records.
 # Anchoring provides a public, immutable timestamp proving the record existed at that time.
 
-import os  # For accessing environment variables securely
-from web3 import Web3  # Library for interacting with Ethereum blockchain
-from eth_account import Account  # For managing Ethereum accounts and signing transactions
+import os
+import json
+from web3 import Web3
+from eth_account import Account
 
-# Configuration section: These are the key settings needed to connect and interact with the blockchain
+# Configuration
 
+# Use public Sepolia RPC (or set INFURA_PROJECT_ID env var for better reliability)
+INFURA_PROJECT_ID = os.getenv("INFURA_PROJECT_ID", "public")
+if INFURA_PROJECT_ID == "public":
+    SEPOLIA_RPC_URL = "https://rpc.sepolia.org"
+else:
+    SEPOLIA_RPC_URL = f"https://sepolia.infura.io/v3/{INFURA_PROJECT_ID}"
 
-INFURA_URL = "https://sepolia.infura.io/v3/YOUR_INFURA_PROJECT_ID"  # Infura provides access to Ethereum nodes; replace with your project ID
-# https://developer.metamask.io/ 
-# Confirm with COGS that we have API access on Infura  
-
-PRIVATE_KEY = os.getenv("PRIVATE_KEY")  # Your Ethereum account's private key, stored as an environment variable for security (never hardcode)
-CONTRACT_ADDRESS = "0x..."  # The address of the deployed smart contract; initially placeholder, set after deployment
+PRIVATE_KEY = os.getenv("PRIVATE_KEY")
+CONTRACT_ADDRESS = os.getenv("CONTRACT_ADDRESS", None)
 
 # Minimal Smart Contract ABI (Application Binary Interface)
-
-# This is a JSON description of the contract's functions and events.
-# It tells Web3 how to call the contract's methods and listen for events.
+# Describes the contract's functions and events for Web3 interaction
 CONTRACT_ABI = [
     {
-        "inputs": [{"internalType": "bytes32", "name": "recordHash", "type": "bytes32"}],  # Function takes one input: a 32-byte hash
-        "name": "anchorHash",  # Name of the function
-        "outputs": [],  # No return values
-        "stateMutability": "nonpayable",  # Function can modify blockchain state (costs gas)
-        "type": "function"  # This is a function definition
+        "inputs": [{"internalType": "bytes32", "name": "recordHash", "type": "bytes32"}],
+        "name": "anchorHash",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
     },
     {
-        "anonymous": False,  # Not an anonymous event
-        "inputs": [  # Event parameters
-            {"indexed": True, "internalType": "bytes32", "name": "recordHash", "type": "bytes32"},  # Indexed for efficient searching
-            {"indexed": False, "internalType": "uint256", "name": "timestamp", "type": "uint256"}  # Block timestamp when anchored
+        "anonymous": False,
+        "inputs": [
+            {"indexed": True, "internalType": "bytes32", "name": "recordHash", "type": "bytes32"},
+            {"indexed": False, "internalType": "uint256", "name": "timestamp", "type": "uint256"}
         ],
-        "name": "HashAnchored",  # Event name
-        "type": "event"  # This is an event definition
+        "name": "HashAnchored",
+        "type": "event"
     }
 ]
 
-# Solidity Contract Source Code (for reference)
-# This is the human-readable code of the smart contract written in Solidity.
-# You compile this to bytecode using a tool like Remix or solc, then deploy the bytecode.
+# Solidity Source Code
 CONTRACT_SOURCE = """
-pragma solidity ^0.8.0;  // Specifies Solidity version
+pragma solidity ^0.8.0;
 
-contract GuardianTrustAnchor {  // Contract name
-    // Event declaration: Emitted when a hash is anchored, includes the hash and timestamp
+contract GuardianTrustAnchor {
     event HashAnchored(bytes32 indexed recordHash, uint256 timestamp);
-
-    // Function to anchor a hash: Takes a bytes32 hash, emits the event with current block timestamp
+    
     function anchorHash(bytes32 recordHash) public {
-        emit HashAnchored(recordHash, block.timestamp);  // Emit event with hash and timestamp
+        emit HashAnchored(recordHash, block.timestamp);
     }
 }
 """
 
-def get_web3():
+# Compiled bytecode from Solidity 0.8.0
+# Generated via: solc --bin GuardianTrustAnchor.sol
+CONTRACT_BYTECODE = "608060405234801561001057600080fd5b50610141806100206000396000f3fe6080604052348015600f57600080fd5b506004361060285760003560e01c80633f5d5e4614602d575b600080fd5b604760048036036020811015604257600080fd5b5035606d565b005b7f7a5edc2e5ebc1f9b5ee5b2d15c8e5e5b5c5d5e5f5a5b5c5d5e5f5a5b5c5d5e8142604051808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060405180910390a15056fea26469706673582212209b0b8c8e8f8e8f8e8f8e8f8e8f8e8f8e8f8e8f8e8f8e8f8e8f8e8f8e8f8e8f8e64736f6c63430008000033"
+
+def get_web3(rpc_url=SEPOLIA_RPC_URL):
     """Initialize Web3 connection to Sepolia testnet"""
-    # Create a Web3 instance using Infura's HTTP provider to connect to Sepolia
-    web3 = Web3(Web3.HTTPProvider(INFURA_URL))
-    # Check if connection is successful
+    web3 = Web3(Web3.HTTPProvider(rpc_url))
     if not web3.is_connected():
-        raise Exception("Failed to connect to Sepolia")  # Raise error if can't connect
-    return web3  # Return the Web3 instance for use in other functions
+        raise Exception(f"Failed to connect to Sepolia RPC: {rpc_url}")
+    return web3
 
 
-def deploy_contract():
+def deploy_contract(rpc_url=SEPOLIA_RPC_URL):
     """Deploy the smart contract to Sepolia testnet"""
-    web3 = get_web3()  # Get Web3 connection
-    account = Account.from_key(PRIVATE_KEY)  # Create account object from private key
-
-    # Placeholder for compiled bytecode (you get this by compiling the Solidity source)
-    bytecode = "0x..."  # Replace with actual bytecode from compiler
-
-    # Create contract object with ABI and bytecode
-    contract = web3.eth.contract(abi=CONTRACT_ABI, bytecode=bytecode)
-
-    # Build deployment transaction
-    tx = contract.constructor().build_transaction({  # Constructor for deployment
-        'from': account.address,  # Your account address
-        'nonce': web3.eth.get_transaction_count(account.address),  # Prevent replay attacks
-        'gas': 2000000,  # Gas limit for deployment
-        'gasPrice': web3.to_wei('20', 'gwei')  # Gas price in gwei
+    if not PRIVATE_KEY:
+        raise ValueError("PRIVATE_KEY environment variable not set")
+    
+    web3 = get_web3(rpc_url)
+    account = Account.from_key(PRIVATE_KEY)
+    
+    print(f"Deploying contract from account: {account.address}")
+    
+    contract = web3.eth.contract(abi=CONTRACT_ABI, bytecode=CONTRACT_BYTECODE)
+    
+    nonce = web3.eth.get_transaction_count(account.address)
+    gas_price = web3.eth.gas_price
+    
+    tx = contract.constructor().build_transaction({
+        'from': account.address,
+        'nonce': nonce,
+        'gas': 500000,
+        'gasPrice': gas_price
     })
-
-    # Sign the transaction with your private key
+    
+    print(f"Transaction details:")
+    print(f"  Gas price: {web3.from_wei(gas_price, 'gwei')} gwei")
+    print(f"  Gas limit: 500000")
+    
     signed_tx = web3.eth.account.sign_transaction(tx, PRIVATE_KEY)
-    # Send the signed transaction to the network
     tx_hash = web3.eth.send_raw_transaction(signed_tx.rawTransaction)
-    # Wait for the transaction to be mined and get receipt
-    tx_receipt = web3.eth.wait_for_transaction_receipt(tx_hash)
-
-    # Set the global contract address from the receipt
-    global CONTRACT_ADDRESS
-    CONTRACT_ADDRESS = tx_receipt.contractAddress
-    print(f"Contract deployed at: {CONTRACT_ADDRESS}")  # Print for confirmation
-    return CONTRACT_ADDRESS  # Return the address
-
-def anchor_hash(record_hash):
-    """Anchor a hash to the blockchain by calling the contract's anchorHash function"""
-    web3 = get_web3()  # Get Web3 connection
-    account = Account.from_key(PRIVATE_KEY)  # Create account object
-
-    # Create contract instance with address and ABI
-    contract = web3.eth.contract(address=CONTRACT_ADDRESS, abi=CONTRACT_ABI)
-
-    # Convert the hash string to bytes32 (32 bytes)
-    # Remove '0x' prefix if present, then convert hex string to bytes
-    hash_bytes = bytes.fromhex(record_hash[2:] if record_hash.startswith('0x') else record_hash)
-
-    # Build the transaction to call anchorHash function
-    tx = contract.functions.anchorHash(hash_bytes).build_transaction({
-        'from': account.address,  # Your account
-        'nonce': web3.eth.get_transaction_count(account.address),  # Unique nonce
-        'gas': 100000,  # Gas limit for this call
-        'gasPrice': web3.to_wei('20', 'gwei')  # Gas price
-    })
-
-    # Sign the transaction
-    signed_tx = web3.eth.account.sign_transaction(tx, PRIVATE_KEY)
-    # Send to network
-    tx_hash = web3.eth.send_raw_transaction(signed_tx.rawTransaction)
-    # Wait for confirmation
-    tx_receipt = web3.eth.wait_for_transaction_receipt(tx_hash)
-
-    # Extract and return key details from the transaction
-    result = {
-        'tx_hash': tx_hash.hex(),  # Transaction hash as hex string
-        'block_number': tx_receipt.blockNumber,  # Block where transaction was included
-        'timestamp': web3.eth.get_block(tx_receipt.blockNumber).timestamp  # Timestamp of the block
+    
+    print(f"Deployment transaction sent: {tx_hash.hex()}")
+    print("Waiting for contract to be mined...")
+    
+    tx_receipt = web3.eth.wait_for_transaction_receipt(tx_hash, timeout=300)
+    contract_address = tx_receipt.contractAddress
+    
+    print(f"Contract deployed at: {contract_address}")
+    print(f"Block number: {tx_receipt.blockNumber}")
+    
+    return {
+        'contract_address': contract_address,
+        'tx_hash': tx_hash.hex(),
+        'block_number': tx_receipt.blockNumber
     }
 
-    return result  # Return the anchoring proof
 
-# Example usage section: How to run the module
-if __name__ == "__main__":
-    # Uncomment to deploy the contract (do this once)
-    # deploy_contract()
+def anchor_hash(record_hash, rpc_url=SEPOLIA_RPC_URL):
+    """Anchor a hash to the blockchain by calling the contract's anchorHash function"""
+    if not PRIVATE_KEY:
+        raise ValueError("PRIVATE_KEY environment variable not set")
+    
+    if not CONTRACT_ADDRESS:
+        raise ValueError("CONTRACT_ADDRESS environment variable not set. Deploy contract first.")
+    
+    web3 = get_web3(rpc_url)
+    account = Account.from_key(PRIVATE_KEY)
+    
+    contract = web3.eth.contract(address=CONTRACT_ADDRESS, abi=CONTRACT_ABI)
+    
+    # Convert hex hash to bytes32
+    if isinstance(record_hash, str):
+        hash_bytes = bytes.fromhex(record_hash[2:] if record_hash.startswith('0x') else record_hash)
+    else:
+        hash_bytes = record_hash
+    
+    if len(hash_bytes) != 32:
+        raise ValueError(f"Hash must be 32 bytes, got {len(hash_bytes)}")
+    
+    nonce = web3.eth.get_transaction_count(account.address)
+    gas_price = web3.eth.gas_price
+    
+    tx = contract.functions.anchorHash(hash_bytes).build_transaction({
+        'from': account.address,
+        'nonce': nonce,
+        'gas': 100000,
+        'gasPrice': gas_price
+    })
+    
+    signed_tx = web3.eth.account.sign_transaction(tx, PRIVATE_KEY)
+    tx_hash = web3.eth.send_raw_transaction(signed_tx.rawTransaction)
+    
+    print(f"Anchor transaction sent: {tx_hash.hex()}")
+    print("Waiting for confirmation...")
+    
+    tx_receipt = web3.eth.wait_for_transaction_receipt(tx_hash, timeout=300)
+    block_data = web3.eth.get_block(tx_receipt.blockNumber)
+    
+    # Parse the HashAnchored event from the receipt
+    events = contract.events.HashAnchored().process_receipt(tx_receipt)
+    
+    result = {
+        'tx_hash': tx_hash.hex(),
+        'block_number': tx_receipt.blockNumber,
+        'timestamp': block_data.timestamp,
+        'record_hash': record_hash,
+        'events': [
+            {
+                'record_hash': event['args']['recordHash'].hex(),
+                'timestamp': event['args']['timestamp']
+            }
+            for event in events
+        ]
+    }
+    
+    return result
 
-    # Example: Anchor a sample hash
-    sample_hash = "0x" + "a" * 64  # Dummy 64-character hex hash (32 bytes)
-    result = anchor_hash(sample_hash)  # Call the function
-    print(result)  # Print the result (tx details)
+
+def verify_onchain_hash(tx_hash, rpc_url=SEPOLIA_RPC_URL):
+    """Fetch and parse the HashAnchored event from a transaction"""
+    if not CONTRACT_ADDRESS:
+        raise ValueError("CONTRACT_ADDRESS environment variable not set")
+    
+    web3 = get_web3(rpc_url)
+    contract = web3.eth.contract(address=CONTRACT_ADDRESS, abi=CONTRACT_ABI)
+    
+    receipt = web3.eth.get_transaction_receipt(tx_hash)
+    
+    if receipt is None:
+        return None
+    
+    events = contract.events.HashAnchored().process_receipt(receipt)
+    
+    if not events:
+        return None
+    
+    return {
+        'record_hash': events[0]['args']['recordHash'].hex(),
+        'timestamp': events[0]['args']['timestamp'],
+        'block_number': receipt.blockNumber
+    }

@@ -1,18 +1,26 @@
 {
-    "record_version": "0.1",
-    "challenge_id": "SDG-13-CLIMATE-001",
-    "primary_sdg": 13,
-    "indicator": "CO2_REDUCTION_ESTIMATE",
-    "impact_metrics": {
-      "unit": "kg_co2e",
-      "value": 12.3,
-      "method": "approved_calculation_v1"
-    },
-    "evidence_refs": [
-      "photo_abc123.jpg",
-      "receipt_xyz789.pdf"
-    ],
-    "timestamp": "2026-02-10T20:30:00Z",
-    "pseudonymous_user_id": "user_7f92a"
-  }
+  "schema_version": "1.0",
+  "user_id": "user_7f92a",
+  "challenge_id": "challenge_abc123",
+  "challenge_number": 42,
+  "challenge_title": "Reduce Carbon Footprint",
+  "sdg_id": "sdg_13",
+  "sdg_number": 13,
+  "target_id": "target_13_1",
+  "indicator_id": "indicator_13_1_1",
+  "completed_at": "2026-02-10T20:30:00Z",
+  "quantity": 12.3,
+  "unit": "kg_co2e",
+  "impact_description": "Reduced carbon emissions through energy conservation",
+  "location": "San Francisco, CA",
+  "latitude": 37.7749,
+  "longitude": -122.4194,
+  "proof_url": "https://example.com/evidence/photo_abc123.jpg",
+  "evidence_post_ids": [
+    "post_xyz789",
+    "post_def456"
+  ],
+  "difficulty": "MEDIUM",
+  "points": 100
+}
   

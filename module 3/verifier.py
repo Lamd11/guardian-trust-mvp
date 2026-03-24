@@ -25,7 +25,11 @@ import json
 import sys
 from typing import Any
 
-from hasher import sha256_hex
+# Import hashing from Module 1 to avoid code duplication
+import sys
+import os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'module1'))
+from hash_engine import hash_record, verify_hash
 
 
 # ─────────────────────────────────────────────
@@ -95,34 +99,21 @@ def verify(impact_record: dict[str, Any], onchain_hash: str | None) -> dict:
     """
     Recompute hash from record and compare to on-chain value.
 
+    Uses Module 1's verify_hash() function to ensure consistent hashing.
+
     Returns a VerificationResult:
         {
-            "computed_hash": str,
-            "onchain_hash":  str | None,
-            "match":         bool,
-            "status":        "VERIFIED" | "TAMPERED" | "MISSING"
+            "recomputed_hash": str,
+            "expected_hash":   str | None,
+            "status":          "VERIFIED" | "TAMPERED" | "MISSING",
+            "match":           bool
         }
     """
-    computed = sha256_hex(impact_record)
-
-    if not onchain_hash:
-        return {
-            "computed_hash": computed,
-            "onchain_hash": None,
-            "match": False,
-            "status": "MISSING",
-        }
-
-    # strip 0x prefix if present, normalize case
-    onchain_normalized = onchain_hash.lower().removeprefix("0x")
-    match = computed.lower() == onchain_normalized
-
-    return {
-        "computed_hash": computed,
-        "onchain_hash": onchain_normalized,
-        "match": match,
-        "status": "VERIFIED" if match else "TAMPERED",
-    }
+    result = verify_hash(impact_record, onchain_hash or "")
+    
+    result["match"] = result["status"] == "VERIFIED"
+    
+    return result
 
 
 # ─────────────────────────────────────────────
@@ -130,16 +121,17 @@ def verify(impact_record: dict[str, Any], onchain_hash: str | None) -> dict:
 # ─────────────────────────────────────────────
 
 def print_result(result: dict) -> None:
-    icons = {"VERIFIED": "[VERIFIED]", "TAMPERED": "[TAMPERED]", "MISSING": "[WARNING]"}
+    icons = {"VERIFIED": "[✓]", "TAMPERED": "[✗]", "MISSING": "[?]"}
     status = result["status"]
 
     print()
-    print("=" * 54)
+    print("=" * 60)
     print("  Guardian Trust — Verification Result")
-    print("=" * 54)
-    print(f"  Status:        {icons.get(status, status)}  {status}")
-    print(f"  Computed hash: {result['computed_hash']}")
-    print(f"  On-chain hash: {result['onchain_hash'] or 'NOT FOUND'}")
+    print("=" * 60)
+    print(f"  Status:             {icons.get(status, status)}  {status}")
+    print(f"  Recomputed hash:    {result['recomputed_hash']}")
+    print(f"  Expected hash:      {result['expected_hash'] or 'NOT FOUND'}")
+    print(f"  Match:              {result.get('match', False)}")
 
     if status == "MISSING":
         print()
@@ -150,7 +142,7 @@ def print_result(result: dict) -> None:
         print("    - Wrong tx_hash or hash provided")
         print("    - Transaction is still pending on Sepolia")
 
-    print("=" * 54)
+    print("=" * 60)
     print()
 
 
