@@ -136,10 +136,9 @@ Blockchain transaction that stores:
 
 ---
 
-## 🧱 Technical Stack (Planned MVP)
+## 🧱 Technical Stack
 
 ### Backend / Hashing Layer
-- Node.js (ethers.js) **or**
 - Python (web3.py)
 
 ### Blockchain
@@ -233,9 +232,9 @@ The goal is to prove:
 
 ## 📂 Repository Status
 
-This repository is a temporary working environment pending official CoGs GitHub organization setup.
+MVP complete. All three modules built, integrated, and tested.
 
-It will be migrated once organizational access is available.
+See [SETUP.md](SETUP.md) to run the demo or deploy to Sepolia.
 
 ---
 
